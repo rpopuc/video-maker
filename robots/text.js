@@ -1,20 +1,31 @@
 const algorithimia = require('algorithmia');
-const algorithimiaApiKey = require('../credentials/algorithmia.json').apiKey
+const algorithimiaApiKey = require('../credentials/algorithmia.json').apikey
 const sentenceBoundaryDetection = require('sbd')
+
+const watsonApiKey = require('../credentials/watson-nlu.json').apikey
+
+const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1.js')
 
 async function robot(content) {
     //console.log(`Recebi com sucesso o content: ${content.searchTerm}`)
 
-
     await fetchContentFromWikipedia(content)
     sanitizeContent(content)
     breakContentIntoSentences(content)
-    console.log(content.sentences)
+    limitMaximumSentences(content)
+    await fetchKeywordsOfAllSentences(content)
+
+    console.log(JSON.stringify(content, null, 4));
+
 
     async function fetchContentFromWikipedia(content) {
         const algorithimiaAuthenticated = algorithimia(algorithimiaApiKey)
         const wikipediaAlgorithm = algorithimiaAuthenticated.algo('web/WikipediaParser/0.1.2')
-        const wikipediaResponse = await wikipediaAlgorithm.pipe(content.searchTerm)
+        const wikipediaResponse = await wikipediaAlgorithm.pipe({
+            "lang": "pt",
+            //"lang": "en",
+            "articleName": content.searchTerm,
+        })
         const wikipediaContent = wikipediaResponse.get()
         content.sourceContentOriginal = wikipediaContent.content
     }
@@ -51,6 +62,41 @@ async function robot(content) {
                 images: []
             }
         })
+    }
+
+    function limitMaximumSentences(content) {
+        content.sentences = content.sentences.slice(0, content.maximumSentences)
+    }
+
+    async function fetchWatsonAndReturnKeywords(sentence) {
+        var nlu = new NaturalLanguageUnderstandingV1({
+            iam_apikey: watsonApiKey,
+            version: '2018-04-05',
+            url: 'https://gateway.watsonplatform.net/natural-language-understanding/api/'
+        })
+
+        return new Promise((resolve, reject) => {
+            nlu.analyze({
+                text: sentence,
+                features: {
+                    keywords: {}
+                }
+            }, (error, response) => {
+                if (error) {
+                    throw error
+                }
+
+                const keywords = response.keywords.map(keyword => keyword.text)
+
+                resolve(keywords)
+            })
+        })
+    }
+
+    async function fetchKeywordsOfAllSentences(content) {
+        for (const sentence of content.sentences) {
+            sentence.keywords = await fetchWatsonAndReturnKeywords(sentence.text)
+        }
     }
 }
 
