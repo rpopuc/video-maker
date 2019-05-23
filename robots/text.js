@@ -1,33 +1,40 @@
 const algorithimia = require('algorithmia');
 const algorithimiaApiKey = require('../credentials/algorithmia.json').apikey
 const sentenceBoundaryDetection = require('sbd')
-
 const watsonApiKey = require('../credentials/watson-nlu.json').apikey
-
 const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1.js')
+const state = require('./state.js')
 
-async function robot(content) {
-    //console.log(`Recebi com sucesso o content: ${content.searchTerm}`)
+async function robot() {
+    const content = state.load()
 
     await fetchContentFromWikipedia(content)
     sanitizeContent(content)
     breakContentIntoSentences(content)
     limitMaximumSentences(content)
+
     await fetchKeywordsOfAllSentences(content)
 
-    console.log(JSON.stringify(content, null, 4));
+    state.save(content)
 
+    // console.log(JSON.stringify(content, null, 4));
 
     async function fetchContentFromWikipedia(content) {
         const algorithimiaAuthenticated = algorithimia(algorithimiaApiKey)
         const wikipediaAlgorithm = algorithimiaAuthenticated.algo('web/WikipediaParser/0.1.2')
-        const wikipediaResponse = await wikipediaAlgorithm.pipe({
-            "lang": "pt",
-            //"lang": "en",
-            "articleName": content.searchTerm,
-        })
-        const wikipediaContent = wikipediaResponse.get()
-        content.sourceContentOriginal = wikipediaContent.content
+        try {
+            const wikipediaResponse = await wikipediaAlgorithm.pipe({
+                "lang": "pt",
+                // "lang": "en",
+                "articleName": content.searchTerm,
+            })
+            const wikipediaContent = wikipediaResponse.get()
+            content.sourceContentOriginal = wikipediaContent.content
+        } catch (error) {
+            console.log('error')
+            console.log(error)
+            process.exit(0)
+        }
     }
 
     function sanitizeContent(content) {
@@ -69,7 +76,7 @@ async function robot(content) {
     }
 
     async function fetchWatsonAndReturnKeywords(sentence) {
-        var nlu = new NaturalLanguageUnderstandingV1({
+        const nlu = new NaturalLanguageUnderstandingV1({
             iam_apikey: watsonApiKey,
             version: '2018-04-05',
             url: 'https://gateway.watsonplatform.net/natural-language-understanding/api/'
