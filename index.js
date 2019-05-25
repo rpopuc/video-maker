@@ -2,7 +2,8 @@ const robots = {
     userInput: require('./robots/user-input.js'),
     text: require('./robots/text.js'),
     state: require('./robots/state.js'),
-    image: require('./robots/image')
+    image: require('./robots/image'),
+    video: require('./robots/video.js'),
 }
 
 async function start() {
