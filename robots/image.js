@@ -8,6 +8,8 @@ const googleSearchCredentials = require('../credentials/google-search.json')
 // Propriedades da busca: https://developers.google.com/apis-explorer/#p/customsearch/v1/search.cse.list
 
 async function robot() {
+    console.log("> [image-robot] Starting...")
+
     // Carrega a estutura do arquivo
     const content = state.load()
 
@@ -27,6 +29,8 @@ async function robot() {
         for (const sentence of content.sentences) {
             // Monta o texto de consulta com o termo e a palavra chave
             const query = `${content.searchTerm} ${sentence.keywords[0]}`
+
+            console.log(`> [image-robot] Querying Google Images with: "${query}"`)
 
             // Obtém a lista das urls das imagens a partir da api do google
             // e a armazena no objeto da sentença
@@ -84,7 +88,7 @@ async function robot() {
                 try {
                     // Se a imagem já foi baixada anteriormente, ignore
                     if (content.downloadedImages.includes(imageUrl)) {
-                        throw new Error('Imagem já foi baixada')
+                        throw new Error('Imagem already downloaded')
                     }
 
                     // Efetua o download da imagem e a salva em disco
@@ -93,10 +97,10 @@ async function robot() {
                     // Adiciona a url da imagem à lista de imagens baixadas
                     content.downloadedImages.push(imageUrl)
 
-                    console.log(`> [${sentenceIndex}][${imageIndex}] Baixou imagem com sucesso: ${imageUrl}`)
+                    console.log(`> [image-robot] [${sentenceIndex}][${imageIndex}] Image successfully downloaded: ${imageUrl}`)
                     break
                 } catch (error) {
-                    console.log(`> [${sentenceIndex}][${imageIndex}] Erro ao baixar ${imageUrl}> ${error}`)
+                    console.log(`> [image-robot] [${sentenceIndex}][${imageIndex}] Error on ${imageUrl}> ${error}`)
                 }
             }
         }
