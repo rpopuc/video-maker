@@ -26,18 +26,24 @@ async function robot() {
     // Busca (as urls) de imagens de todas as senteças
     async function fetchImagesOfAllSentences(content) {
         // Para cada sentença na lista de sentenças
-        for (const sentence of content.sentences) {
+        for (let sentenceIndex = 0; sentenceIndex < content.sentences.length; sentenceIndex++) {
+            let query
+
             // Monta o texto de consulta com o termo e a palavra chave
-            const query = `${content.searchTerm} ${sentence.keywords[0]}`
+            if (sentenceIndex === 0) {
+                query = content.searchTerm
+            } else {
+                query = `${content.searchTerm} ${content.sentences[sentenceIndex].keywords[0]}`
+            }
 
             console.log(`> [image-robot] Querying Google Images with: "${query}"`)
 
             // Obtém a lista das urls das imagens a partir da api do google
             // e a armazena no objeto da sentença
-            sentence.images = await fetchGoogleAndReturnImagesLinks(query)
+            content.sentences[sentenceIndex].images = await fetchGoogleAndReturnImagesLinks(query)
 
             // Guarda o texto de consulta na sentença
-            sentence.googleSearchQuery = query
+            content.sentences[sentenceIndex].googleSearchQuery = query
         }
     }
 
